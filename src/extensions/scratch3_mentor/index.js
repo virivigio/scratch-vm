@@ -2,8 +2,15 @@ const ArgumentType = require('../../extension-support/argument-type');
 const BlockType = require('../../extension-support/block-type');
 const Cast = require('../../util/cast');
 const log = require('../../util/log');
+var noble = require('noble');
 
 class Scratch3Mentor {
+
+    // enable bluetooth protocol in Chrome
+    // https://developers.google.com/web/updates/2015/07/interact-with-ble-devices-on-the-web:
+    // chrome://flags/#enable-web-bluetooth
+    // chrome://flags/#enable-experimental-web-platform-features
+
     constructor (runtime) {
         this.runtime = runtime;
 
@@ -11,6 +18,10 @@ class Scratch3Mentor {
         this.webble.name = null;
         this.webble.id = null;
         this.webble.connected = false;
+
+        this.noble = {};
+        this.noble.status = null;
+        this.noble.state = null;
     }
 
     getInfo () {
@@ -32,7 +43,7 @@ class Scratch3Mentor {
                 {
                     opcode: 'connectBLE',
                     blockType: BlockType.COMMAND,
-                    text: 'BLE information',
+                    text: 'Connect to BLE',
                     arguments: {}
                 },
                 {
@@ -40,12 +51,42 @@ class Scratch3Mentor {
                     blockType: BlockType.REPORTER,
                     text: 'BLE information',
                     arguments: {}
-                }
+                },
+                {
+                    opcode: 'connectNOBLE',
+                    blockType: BlockType.COMMAND,
+                    text: 'Connect to NOBLE',
+                    arguments: {}
+                },
+                {
+                    opcode: 'showNOBLE',
+                    blockType: BlockType.REPORTER,
+                    text: 'NOBLE information',
+                    arguments: {}
+                },
             ],
             menus: {
             }
         };
     }
+
+    connectNOBLE (args) {
+
+        //se abbiamo il noble allora inizia la scansione
+        if (noble.state === 'poweredOn')
+            noble.startScanning(['6e400001b5a3f393e0a9e50e24dcca9e'], false, (err) => {if (err) { this.noble.status='error: ' + err } });
+
+        //comunque registra l'handler delle discoveries
+        noble.on('discover', function(peripheral) {
+            this.noble.status+=':'+peripheral.advertisement.localName+':';
+        });
+    }
+
+    showNOBLE (args) {
+        return ''+this.noble.status;
+    }
+
+
 
     askMentor (args) {
         const caso = Math.floor(Math.random() * (5 - 1) + 1); //return a whole number 1 <= x <= 5
