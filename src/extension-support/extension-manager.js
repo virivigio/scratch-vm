@@ -24,7 +24,8 @@ const builtinExtensions = {
     makeymakey: () => require('../extensions/scratch3_makeymakey'),
     boost: () => require('../extensions/scratch3_boost'),
     gdxfor: () => require('../extensions/scratch3_gdx_for'),
-    mentor: () => require('../extensions/scratch3_mentor')
+    mentor: () => require('../extensions/scratch3_mentor'),
+    microbitMore: () => require('../extensions/scratch3_microbit_more')
 };
 
 /**
