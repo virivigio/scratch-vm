@@ -30,7 +30,6 @@
   },
   "dependencies": {
     "@vernier/godirect": "1.5.0",
-    "@xyo-network/ble.noble": "^0.49.0",
     "arraybuffer-loader": "^1.0.6",
     "atob": "2.1.2",
     "btoa": "1.2.1",
@@ -40,7 +39,6 @@
     "format-message": "6.2.1",
     "htmlparser2": "3.10.0",
     "immutable": "3.8.1",
-    "isomorphic-ws": "^4.0.1",
     "jszip": "^3.1.5",
     "minilog": "3.1.0",
     "nets": "3.2.0",
