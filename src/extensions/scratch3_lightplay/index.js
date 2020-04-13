@@ -11,6 +11,13 @@ class Scratch3Lightplay {
     constructor (runtime) {
         this.runtime = runtime;
 
+        this.speed = null;
+        this.direction = null;
+
+        this.R = null;
+        this.G = null;
+        this.B = null;
+
     }
 
     getInfo () {
@@ -20,47 +27,192 @@ class Scratch3Lightplay {
             blockIconURI: blockIconURI,
             blocks: [
                 {
-                    opcode: 'askMentor',
-                    blockType: BlockType.REPORTER,
-                    text: 'Please, help me with [TEXT]',
+                    opcode: 'setSpeed',
+                    blockType: BlockType.COMMAND,
+                    text: 'Set rotation speed to [SPEED]',
                     arguments: {
-                        TEXT: {
+                        SPEED: {
+                            type: ArgumentType.NUMBER,
+                            defaultValue: 40
+                        }
+                    }
+                },
+                {
+                    opcode: 'getSpeed',
+                    blockType: BlockType.REPORTER,
+                    text: 'Get current rotation speed',
+                    arguments: {
+                    }
+                },
+                {
+                    opcode: 'setDirection',
+                    blockType: BlockType.COMMAND,
+                    text: 'Set direction to [DIRECTION]',
+                    arguments: {
+                        DIRECTION: {
+                            type: ArgumentType.NUMBER,
+                            menu: 'directionMenu'
+                        }
+                    }
+                },
+                {
+                    opcode: 'getDirection',
+                    blockType: BlockType.REPORTER,
+                    text: 'Get current direction',
+                    arguments: {
+                    }
+                },
+                {
+                    opcode: 'startRotation',
+                    blockType: BlockType.COMMAND,
+                    text: 'Start rotation',
+                    arguments: {
+                    }
+                },
+                {
+                    opcode: 'stopRotation',
+                    blockType: BlockType.COMMAND,
+                    text: 'Stop rotation',
+                    arguments: {
+                    }
+                },
+                {
+                    opcode: 'setColorRGB',
+                    blockType: BlockType.COMMAND,
+                    text: 'Set color RGB [R][G][B]',
+                    arguments: {
+                        R: {
+                            type: ArgumentType.NUMBER,
+                            defaultValue: 255
+                        },
+                        G: {
+                            type: ArgumentType.NUMBER,
+                            defaultValue: 255
+                        },
+                        B: {
+                            type: ArgumentType.NUMBER,
+                            defaultValue: 255
+                        }
+
+                    }
+                },
+
+                //presi da PEN
+                {
+                    opcode: 'setColorToColor',
+                    blockType: BlockType.COMMAND,
+                    text: 'set color to [COLOR]',
+                    arguments: {
+                        COLOR: {
+                            type: ArgumentType.COLOR
+                        }
+                    }
+                },
+                {
+                    opcode: 'changeColorParamBy',
+                    blockType: BlockType.COMMAND,
+                    text: 'change [COLOR_PARAM] by [VALUE]',
+                    arguments: {
+                        COLOR_PARAM: {
                             type: ArgumentType.STRING,
-                            defaultValue: "I'm stuck, nothing works!"
+                            menu: 'colorParam'
+                        },
+                        VALUE: {
+                            type: ArgumentType.NUMBER,
+                            defaultValue: 10
+                        }
+                    }
+                },
+                {
+                    opcode: 'setColorParamTo',
+                    blockType: BlockType.COMMAND,
+                    text: 'set pen [COLOR_PARAM] to [VALUE]',
+                    arguments: {
+                        COLOR_PARAM: {
+                            type: ArgumentType.STRING,
+                            menu: 'colorParam'
+                        },
+                        VALUE: {
+                            type: ArgumentType.NUMBER,
+                            defaultValue: 50
                         }
                     }
                 }
+
             ],
             menus: {
+                directionMenu: {
+                    items: ['clockwise', 'counterclockwise']
+                },
+                colorParam : {
+                    items: ['color','saturation','brightness','transparency']
+                }
             }
         };
     }
 
-    askMentor (args) {
-        const caso = Math.floor(Math.random() * (5 - 1) + 1); //return a whole number 1 <= x <= 5
-        let text = null;
+    //
+    // ENGINE
+    //
 
-        switch(caso) {
-            case 1:
-                text = 'Look at different PROJECTS to solve "'+args.TEXT+'"';
-                break;
-            case 2:
-                text = 'Ask your PEERS to work "'+args.TEXT+'" out';
-                break;
-            case 3:
-                text = 'Be confident in your PASSION to deal with "'+args.TEXT+'"';
-                break;
-            case 4:
-                text = 'Try to PLAY to address "'+args.TEXT+'"';
-                break;
-            case 5:
-                text = 'Help yourself with "'+args.TEXT+'" :-p';
-                break;
-        }
-
-        return text;
+    setSpeed (args) {
+        //finito
+        const speed = parseInt(args.SPEED, 10);
+        if (isNaN(speed)) return;
+        this.speed = speed;
     }
 
+    getSpeed (args) {
+        //finito
+        return this.speed;
+    }
+
+    setDirection (args) {
+        //manca la validazione
+        this.direction = args.DIRECTION;
+    }
+
+    getDirection (args) {
+        //finito
+        return this.direction;
+    }
+
+    startRotation (args) {
+        //manca l'invio del comando
+    }
+
+    stopRotation (args) {
+        //manca l'invio del comando
+        this.speed = 0;
+    }
+
+    //
+    // LIGHT
+    //
+
+    setColorRGB (args) {
+        //finito
+        const R = parseInt(args.R, 10);
+        const G = parseInt(args.R, 10);
+        const B = parseInt(args.R, 10);
+
+        if ( isNaN(R) || isNaN(G) || isNaN(B) ) return;
+        this.R = R;
+        this.G = G;
+        this.B = B;
+    }
+
+    setColorToColor (args) {
+        //preso da PEN
+    }
+
+    changeColorParamBy (args) {
+        //preso da PEN
+    }
+
+    setColorParamTo (args) {
+        //preso da PEN
+    }
 }
 
 module.exports = Scratch3Lightplay;
