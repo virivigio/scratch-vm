@@ -14,10 +14,17 @@ class Scratch3Lightplay {
         this.speed = null;
         this.direction = null;
 
-        this.R = null;
-        this.G = null;
-        this.B = null;
+        this.leds = {};
+        this.leds.led_1 = {};
+        this.leds.led_2 = {};
 
+        this.leds.led_1.R = null;
+        this.leds.led_1.G = null;
+        this.leds.led_1.B = null;
+
+        this.leds.led_2.R = null;
+        this.leds.led_2.G = null;
+        this.leds.led_2.B = null;
     }
 
     getInfo () {
@@ -26,47 +33,22 @@ class Scratch3Lightplay {
             name: 'Lightplay',
             blockIconURI: blockIconURI,
             blocks: [
+
+                //ENGINE
+
                 {
-                    opcode: 'setSpeed',
+                    opcode: 'startRotation',
                     blockType: BlockType.COMMAND,
-                    text: 'Set rotation speed to [SPEED]',
+                    text: 'Start rotating [DIRECTION] with speed [SPEED]',
                     arguments: {
+                        DIRECTION: {
+                            type: ArgumentType.STRING,
+                            menu: 'directionMenu'
+                        },
                         SPEED: {
                             type: ArgumentType.NUMBER,
                             defaultValue: 40
                         }
-                    }
-                },
-                {
-                    opcode: 'getSpeed',
-                    blockType: BlockType.REPORTER,
-                    text: 'Get current rotation speed',
-                    arguments: {
-                    }
-                },
-                {
-                    opcode: 'setDirection',
-                    blockType: BlockType.COMMAND,
-                    text: 'Set direction to [DIRECTION]',
-                    arguments: {
-                        DIRECTION: {
-                            type: ArgumentType.NUMBER,
-                            menu: 'directionMenu'
-                        }
-                    }
-                },
-                {
-                    opcode: 'getDirection',
-                    blockType: BlockType.REPORTER,
-                    text: 'Get current direction',
-                    arguments: {
-                    }
-                },
-                {
-                    opcode: 'startRotation',
-                    blockType: BlockType.COMMAND,
-                    text: 'Start rotation',
-                    arguments: {
                     }
                 },
                 {
@@ -76,11 +58,29 @@ class Scratch3Lightplay {
                     arguments: {
                     }
                 },
+
+                //LIGHT
+
+                {
+                    opcode: 'switchOff',
+                    blockType: BlockType.COMMAND,
+                    text: 'Turn off [WHICH]',
+                    arguments: {
+                        WHICH: {
+                            type: ArgumentType.NUMBER,
+                            menu: 'ledMenu'
+                        }
+                    }
+                },
                 {
                     opcode: 'setColorRGB',
                     blockType: BlockType.COMMAND,
-                    text: 'Set color RGB [R][G][B]',
+                    text: 'Set led [WHICH] to color Red [R] Green [G] Blue [B]',
                     arguments: {
+                        WHICH: {
+                            type: ArgumentType.STRING,
+                            menu: 'ledMenu'
+                        },
                         R: {
                             type: ArgumentType.NUMBER,
                             defaultValue: 255
@@ -96,13 +96,15 @@ class Scratch3Lightplay {
 
                     }
                 },
-
-                //presi da PEN
                 {
                     opcode: 'setColorToColor',
                     blockType: BlockType.COMMAND,
-                    text: 'set color to [COLOR]',
+                    text: 'Set led [WHICH] color to [COLOR]',
                     arguments: {
+                        WHICH: {
+                            type: ArgumentType.STRING,
+                            menu: 'ledMenu'
+                        },
                         COLOR: {
                             type: ArgumentType.COLOR
                         }
@@ -111,30 +113,19 @@ class Scratch3Lightplay {
                 {
                     opcode: 'changeColorParamBy',
                     blockType: BlockType.COMMAND,
-                    text: 'change [COLOR_PARAM] by [VALUE]',
+                    text: 'Change led [WHICH] [COLOR_PARAM] by [VALUE]',
                     arguments: {
+                        WHICH: {
+                            type: ArgumentType.STRING,
+                            menu: 'ledMenu'
+                        },
                         COLOR_PARAM: {
                             type: ArgumentType.STRING,
-                            menu: 'colorParam'
+                            menu: 'colorParamMenu'
                         },
                         VALUE: {
                             type: ArgumentType.NUMBER,
                             defaultValue: 10
-                        }
-                    }
-                },
-                {
-                    opcode: 'setColorParamTo',
-                    blockType: BlockType.COMMAND,
-                    text: 'set pen [COLOR_PARAM] to [VALUE]',
-                    arguments: {
-                        COLOR_PARAM: {
-                            type: ArgumentType.STRING,
-                            menu: 'colorParam'
-                        },
-                        VALUE: {
-                            type: ArgumentType.NUMBER,
-                            defaultValue: 50
                         }
                     }
                 }
@@ -144,8 +135,11 @@ class Scratch3Lightplay {
                 directionMenu: {
                     items: ['clockwise', 'counterclockwise']
                 },
-                colorParam : {
-                    items: ['color','saturation','brightness','transparency']
+                colorParamMenu : {
+                    items: ['color', 'saturation forse', 'brightness']
+                },
+                ledMenu : {
+                    items: ['all leds', 'led 1', 'led 2']
                 }
             }
         };
@@ -155,29 +149,14 @@ class Scratch3Lightplay {
     // ENGINE
     //
 
-    setSpeed (args) {
-        //finito
+    startRotation (args) {
         const speed = parseInt(args.SPEED, 10);
         if (isNaN(speed)) return;
         this.speed = speed;
-    }
 
-    getSpeed (args) {
-        //finito
-        return this.speed;
-    }
-
-    setDirection (args) {
         //manca la validazione
         this.direction = args.DIRECTION;
-    }
 
-    getDirection (args) {
-        //finito
-        return this.direction;
-    }
-
-    startRotation (args) {
         //manca l'invio del comando
     }
 
@@ -190,29 +169,26 @@ class Scratch3Lightplay {
     // LIGHT
     //
 
+    switchOff (args) {
+        let whichLed = args.WHICH;
+    }
+
     setColorRGB (args) {
-        //finito
+        let whichLed = args.WHICH;
+
         const R = parseInt(args.R, 10);
         const G = parseInt(args.R, 10);
         const B = parseInt(args.R, 10);
 
         if ( isNaN(R) || isNaN(G) || isNaN(B) ) return;
-        this.R = R;
-        this.G = G;
-        this.B = B;
     }
 
     setColorToColor (args) {
-        //preso da PEN
     }
 
     changeColorParamBy (args) {
-        //preso da PEN
     }
 
-    setColorParamTo (args) {
-        //preso da PEN
-    }
 }
 
 module.exports = Scratch3Lightplay;
