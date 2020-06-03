@@ -6,6 +6,8 @@ const formatMessage = require('format-message');
 const BLE = require('../../io/ble');
 const Base64Util = require('../../util/base64-util');
 
+const timeoutPromise = timeout => new Promise(resolve => setTimeout(resolve, timeout));
+
 /**
  * Icon png to be displayed at the left edge of each extension block, encoded as a data URI.
  * @type {string}
@@ -106,7 +108,7 @@ const BLESendInterval = 100;
  * A string to report to the BLE socket when the micro:bit has stopped receiving data.
  * @type {string}
  */
-const BLEDataStoppedError = 'Microbit More extension stopped receiving data';
+const BLEDataStoppedError = 'micro:bit extension stopped receiving data';
 
 /**
  * Enum for micro:bit protocol.
@@ -194,7 +196,14 @@ class MbitMore {
             lightLevel: 0,
             temperature: 0,
             compassHeading: 0,
-            magneticForce: {},
+            accelerationX: 0,
+            accelerationY: 0,
+            accelerationZ: 0,
+            accelerationStrength: 0,
+            magneticForceX: 0,
+            magneticForceY: 0,
+            magneticForceZ: 0,
+            magneticStrength: 0,
             analogValue: {},
             digitalValue: {},
             sharedData: [0, 0, 0, 0]
@@ -210,7 +219,7 @@ class MbitMore {
         this.analogIn = [0, 1, 2];
         this.analogIn.forEach(pinIndex => {
             this._sensors.analogValue[pinIndex] = 0;
-    });
+        });
         this.gpio = [
             0, 1, 2,
             8,
@@ -218,7 +227,7 @@ class MbitMore {
         ];
         this.gpio.forEach(pinIndex => {
             this._sensors.digitalValue[pinIndex] = 0;
-    });
+        });
         this.sharedDataLength = this._sensors.sharedData.length;
 
         /**
@@ -267,14 +276,16 @@ class MbitMore {
         this._updateMicrobitService = this._updateMicrobitService.bind(this);
         this._useMbitMoreService = true;
 
-        this.digitalValuesUpdateInterval = 50; // milli-seconds
+        this.digitalValuesUpdateInterval = 20; // milli-seconds
         this.digitalValuesLastUpdated = Date.now();
 
         this.analogInUpdateInterval = 200; // milli-seconds
         this.analogInLastUpdated = Date.now();
 
-        this.sensorsUpdateInterval = 50; // milli-seconds
+        this.sensorsUpdateInterval = 20; // milli-seconds
         this.sensorsLastUpdated = Date.now();
+
+        this.bleReadTimelimit = 500;
     }
 
     /**
@@ -446,26 +457,27 @@ class MbitMore {
         if ((Date.now() - this.analogInLastUpdated) < this.analogInUpdateInterval) {
             return Promise.resolve(this._sensors);
         }
-        return this._ble.read(
+        const read = this._ble.read(
             MBITMORE_SERVICE.ID,
             MBITMORE_SERVICE.ANSLOG_IN,
             false)
             .then(result => {
-            const data = Base64Util.base64ToUint8Array(result.message);
-        const dataView = new DataView(data.buffer, 0);
-        const value1 = dataView.getUint16(0, true);
-        const value2 = dataView.getUint16(2, true);
-        const value3 = dataView.getUint16(4, true);
-        // This invalid values will come up sometimes but the cause is unknown.
-        if (value1 === 255 && value2 === 255 && value3 === 255) {
-            return this._sensors;
-        }
-        this._sensors.analogValue[this.analogIn[0]] = value1;
-        this._sensors.analogValue[this.analogIn[1]] = value2;
-        this._sensors.analogValue[this.analogIn[2]] = value3;
-        this.analogInLastUpdated = Date.now();
-        return this._sensors;
-    });
+                const data = Base64Util.base64ToUint8Array(result.message);
+                const dataView = new DataView(data.buffer, 0);
+                const value1 = dataView.getUint16(0, true);
+                const value2 = dataView.getUint16(2, true);
+                const value3 = dataView.getUint16(4, true);
+                // This invalid values will come up sometimes but the cause is unknown.
+                if (value1 === 255 && value2 === 255 && value3 === 255) {
+                    return this._sensors;
+                }
+                this._sensors.analogValue[this.analogIn[0]] = value1;
+                this._sensors.analogValue[this.analogIn[1]] = value2;
+                this._sensors.analogValue[this.analogIn[2]] = value3;
+                this.analogInLastUpdated = Date.now();
+                return this._sensors;
+            });
+        return Promise.race([read, timeoutPromise(this.bleReadTimelimit).then(() => this._sensors)]);
     }
 
     /**
@@ -495,44 +507,45 @@ class MbitMore {
         if ((Date.now() - this.sensorsLastUpdated) < this.sensorsUpdateInterval) {
             return Promise.resolve(this._sensors);
         }
-        return this._ble.read(
+        const read = this._ble.read(
             MBITMORE_SERVICE.ID,
             MBITMORE_SERVICE.SENSORS,
             false)
             .then(result => {
-            const data = Base64Util.base64ToUint8Array(result.message);
-        const dataView = new DataView(data.buffer, 0);
-        // Accelerometer
-        this._sensors.accelerationX = dataView.getInt16(0, true);
-        this._sensors.accelerationY = dataView.getInt16(2, true);
-        this._sensors.accelerationZ = dataView.getInt16(4, true);
-        this._sensors.accelerationStrength = Math.round(
-            Math.sqrt(
-                (this._sensors.accelerationX ** 2) +
-                (this._sensors.accelerationY ** 2) +
-                (this._sensors.accelerationZ ** 2)
-            )
-        );
-        this._sensors.pitch = dataView.getInt16(6, true);
-        this._sensors.roll = dataView.getInt16(8, true);
-        // Magnetometer
-        this._sensors.compassHeading = dataView.getUint16(10, true);
-        this._sensors.magneticForce[0] = dataView.getInt16(12, true);
-        this._sensors.magneticForce[1] = dataView.getInt16(14, true);
-        this._sensors.magneticForce[2] = dataView.getInt16(16, true);
-        this._sensors.magneticStrength = Math.round(
-            Math.sqrt(
-                (this._sensors.magneticForce[0] ** 2) +
-                (this._sensors.magneticForce[1] ** 2) +
-                (this._sensors.magneticForce[2] ** 2)
-            )
-        );
-        // Light sensor
-        this._sensors.lightLevel = dataView.getUint8(18);
-        this._sensors.temperature = dataView.getUint8(19) - 128;
-        this.sensorsLastUpdated = Date.now();
-        return this._sensors;
-    });
+                const data = Base64Util.base64ToUint8Array(result.message);
+                const dataView = new DataView(data.buffer, 0);
+                // Accelerometer
+                this._sensors.accelerationX = 1000 * dataView.getInt16(0, true) / G;
+                this._sensors.accelerationY = 1000 * dataView.getInt16(2, true) / G;
+                this._sensors.accelerationZ = 1000 * dataView.getInt16(4, true) / G;
+                this._sensors.accelerationStrength = Math.round(
+                    Math.sqrt(
+                        (this._sensors.accelerationX ** 2) +
+                        (this._sensors.accelerationY ** 2) +
+                        (this._sensors.accelerationZ ** 2)
+                    )
+                );
+                this._sensors.pitch = Math.round(dataView.getInt16(6, true) * 180 / Math.PI / 1000);
+                this._sensors.roll = Math.round(dataView.getInt16(8, true) * 180 / Math.PI / 1000);
+                // Magnetometer
+                this._sensors.compassHeading = dataView.getUint16(10, true);
+                this._sensors.magneticForceX = dataView.getInt16(12, true);
+                this._sensors.magneticForceY = dataView.getInt16(14, true);
+                this._sensors.magneticForceZ = dataView.getInt16(16, true);
+                this._sensors.magneticStrength = Math.round(
+                    Math.sqrt(
+                        (this._sensors.magneticForceX ** 2) +
+                        (this._sensors.magneticForceY ** 2) +
+                        (this._sensors.magneticForceZ ** 2)
+                    )
+                );
+                // Light sensor
+                this._sensors.lightLevel = dataView.getUint8(18);
+                this._sensors.temperature = dataView.getUint8(19) - 128;
+                this.sensorsLastUpdated = Date.now();
+                return this._sensors;
+            });
+        return Promise.race([read, timeoutPromise(this.bleReadTimelimit).then(() => this._sensors)]);
     }
 
     /**
@@ -580,7 +593,7 @@ class MbitMore {
             return Promise.resolve(0);
         }
         return this.updateSensors()
-            .then(() => this._sensors.magneticForce[0]);
+            .then(() => this._sensors.magneticForceX);
     }
 
     /**
@@ -592,7 +605,7 @@ class MbitMore {
             return Promise.resolve(0);
         }
         return this.updateSensors()
-            .then(() => this._sensors.magneticForce[2]);
+            .then(() => this._sensors.magneticForceY);
     }
 
     /**
@@ -604,7 +617,7 @@ class MbitMore {
             return Promise.resolve(0);
         }
         return this.updateSensors()
-            .then(() => this._sensors.magneticForce[2]);
+            .then(() => this._sensors.magneticForceZ);
     }
 
     /**
@@ -628,7 +641,7 @@ class MbitMore {
             return Promise.resolve(0);
         }
         return this.updateSensors()
-            .then(() => (1000 * this._sensors.accelerationX / G));
+            .then(() => this._sensors.accelerationX);
     }
 
     /**
@@ -640,7 +653,7 @@ class MbitMore {
             return Promise.resolve(0);
         }
         return this.updateSensors()
-            .then(() => (1000 * this._sensors.accelerationY / G));
+            .then(() => this._sensors.accelerationY);
     }
 
     /**
@@ -652,7 +665,7 @@ class MbitMore {
             return Promise.resolve(0);
         }
         return this.updateSensors()
-            .then(() => (1000 * this._sensors.accelerationZ / G));
+            .then(() => this._sensors.accelerationZ);
     }
 
     /**
@@ -664,7 +677,7 @@ class MbitMore {
             return Promise.resolve(0);
         }
         return this.updateSensors()
-            .then(() => 1000 * this._sensors.accelerationStrength / G);
+            .then(() => this._sensors.accelerationStrength);
     }
 
     /**
@@ -676,7 +689,7 @@ class MbitMore {
             return Promise.resolve(0);
         }
         return this.updateSensors()
-            .then(() => Math.round(this._sensors.pitch * 180 / Math.PI / 1000));
+            .then(() => this._sensors.pitch);
     }
 
     /**
@@ -688,7 +701,7 @@ class MbitMore {
             return Promise.resolve(0);
         }
         return this.updateSensors()
-            .then(() => Math.round(this._sensors.roll * 180 / Math.PI / 1000));
+            .then(() => this._sensors.roll);
     }
 
     /**
@@ -714,8 +727,8 @@ class MbitMore {
         if (this._ble) {
             this._ble.getServices = () => this._ble.sendRemoteRequest('getServices')
                 .catch(e => {
-                this._ble._handleRequestError(e);
-        });
+                    this._ble._handleRequestError(e);
+                });
             this._ble.connectPeripheral(id);
             this.peripheralId = id;
         }
@@ -777,7 +790,7 @@ class MbitMore {
         // the busy flag after a while so that it is possible to try again later.
         this._busyTimeoutID = window.setTimeout(() => {
             this._busy = false;
-    }, 5000);
+        }, 5000);
 
         const output = new Uint8Array(message.length + 1);
         output[0] = command; // attach command to beginning of message
@@ -788,10 +801,10 @@ class MbitMore {
 
         this._ble.write(MICROBIT_SERVICE.ID, MICROBIT_SERVICE.TX, data, 'base64', true).then(
             () => {
-            this._busy = false;
-        window.clearTimeout(this._busyTimeoutID);
-    }
-    );
+                this._busy = false;
+                window.clearTimeout(this._busyTimeoutID);
+            }
+        );
     }
 
     /**
@@ -801,28 +814,28 @@ class MbitMore {
     _onConnect () {
         this._ble.getServices()
             .then(services => {
-            this._ble.startNotifications(MICROBIT_SERVICE.ID, MICROBIT_SERVICE.RX, this._updateMicrobitService);
-        // Workaround for ScratchLink v.1.3.0 MacOS returns service id as distorted format,
-        // such as "0000A62D574E-1B34-4092-8DEE-4151F63B2865-0000-1000-8000-00805f9b34fb".
-        this._useMbitMoreService = typeof services.find(
-            element => element.toLowerCase().indexOf(MBITMORE_SERVICE.ID) !== -1) !== 'undefined';
-        if (this._useMbitMoreService) {
-            // Microbit More service is available.
-            this.send(BLECommand.CMD_PROTOCOL_SET, new Uint8Array([1])); // Set protocol ver.1.
-            this._ble.startNotifications(
-                MBITMORE_SERVICE.ID,
-                MBITMORE_SERVICE.SHARED_DATA,
-                this._updateMicrobitService);
-            this._ble.startNotifications(
-                MBITMORE_SERVICE.ID,
-                MBITMORE_SERVICE.EVENT,
-                this._updateMicrobitService);
-        }
-    });
+                this._ble.startNotifications(MICROBIT_SERVICE.ID, MICROBIT_SERVICE.RX, this._updateMicrobitService);
+                // Workaround for ScratchLink v.1.3.0 MacOS returns service id as distorted format,
+                // such as "0000A62D574E-1B34-4092-8DEE-4151F63B2865-0000-1000-8000-00805f9b34fb".
+                this._useMbitMoreService = typeof services.find(
+                    element => element.toLowerCase().indexOf(MBITMORE_SERVICE.ID) !== -1) !== 'undefined';
+                if (this._useMbitMoreService) {
+                    // Microbit More service is available.
+                    this.send(BLECommand.CMD_PROTOCOL, new Uint8Array([1])); // Set protocol ver.1.
+                    this._ble.startNotifications(
+                        MBITMORE_SERVICE.ID,
+                        MBITMORE_SERVICE.SHARED_DATA,
+                        this._updateMicrobitService);
+                    this._ble.startNotifications(
+                        MBITMORE_SERVICE.ID,
+                        MBITMORE_SERVICE.EVENT,
+                        this._updateMicrobitService);
+                }
+            });
         this._timeoutID = window.setTimeout(
             () => this._ble.handleDisconnectError(BLEDataStoppedError),
             BLETimeout
-    );
+        );
     }
 
     /**
@@ -879,9 +892,9 @@ class MbitMore {
             }
             case MBitMoreDataFormat.MIX_03: {
                 this._sensors.magneticStrength = dataView.getUint16(10, true);
-                this._sensors.accelerationX = dataView.getInt16(12, true);
-                this._sensors.accelerationY = dataView.getInt16(14, true);
-                this._sensors.accelerationZ = dataView.getInt16(16, true);
+                this._sensors.accelerationX = 1000 * dataView.getInt16(12, true) / G;
+                this._sensors.accelerationY = 1000 * dataView.getInt16(14, true) / G;
+                this._sensors.accelerationZ = 1000 * dataView.getInt16(16, true) / G;
                 break;
             }
             case MBitMoreDataFormat.SHARED_DATA: {
@@ -939,20 +952,21 @@ class MbitMore {
      * @return {Promise} - Promise that resolves sensors which updated data of the ditital input state.
      */
     updateDigitalValue () {
-        return this._ble.read(
+        const read = this._ble.read(
             MBITMORE_SERVICE.ID,
             MBITMORE_SERVICE.IO,
             false)
             .then(result => {
-            const data = Base64Util.base64ToUint8Array(result.message);
-        const dataView = new DataView(data.buffer, 0);
-        const gpioData = dataView.getUint32(0, true);
-        for (let i = 0; i < this.gpio.length; i++) {
-            this._sensors.digitalValue[this.gpio[i]] = (gpioData >> this.gpio[i]) & 1;
-        }
-        this.digitalValuesLastUpdated = Date.now();
-        return this._sensors;
-    });
+                const data = Base64Util.base64ToUint8Array(result.message);
+                const dataView = new DataView(data.buffer, 0);
+                const gpioData = dataView.getUint32(0, true);
+                for (let i = 0; i < this.gpio.length; i++) {
+                    this._sensors.digitalValue[this.gpio[i]] = (gpioData >> this.gpio[i]) & 1;
+                }
+                this.digitalValuesLastUpdated = Date.now();
+                return this._sensors;
+            });
+        return Promise.race([read, timeoutPromise(this.bleReadTimelimit).then(() => this._sensors)]);
     }
 
     /**
@@ -983,7 +997,7 @@ class MbitMore {
     setSharedData (sharedDataIndex, sharedDataValue, util) {
         const dataView = new DataView(new ArrayBuffer(2));
         dataView.setInt16(0, sharedDataValue, true);
-        const command = this._useMbitMoreService ? BLECommand.CMD_SHARED_DATA_SET : BLECommandV0.CMD_SHARED_DATA_SET;
+        const command = this._useMbitMoreService ? BLECommand.CMD_SHARED_DATA : BLECommandV0.CMD_SHARED_DATA_SET;
         this.send(command,
             new Uint8Array([
                 sharedDataIndex,
@@ -1245,7 +1259,7 @@ class MbitMoreBlocks {
                 }),
                 value: MicroBitTiltDirection.ANY
             }
-    ];
+        ];
     }
 
     get ANALOG_IN_MENU () {
@@ -2165,9 +2179,9 @@ class MbitMoreBlocks {
 
         return new Promise(resolve => {
             setTimeout(() => {
-            resolve();
-        }, BLESendInterval);
-    });
+                resolve();
+            }, BLESendInterval);
+        });
     }
 
     /**
@@ -2187,9 +2201,9 @@ class MbitMoreBlocks {
 
         return new Promise(resolve => {
             setTimeout(() => {
-            resolve();
-        }, yieldDelay);
-    });
+                resolve();
+            }, yieldDelay);
+        });
     }
 
     /**
@@ -2204,9 +2218,9 @@ class MbitMoreBlocks {
 
         return new Promise(resolve => {
             setTimeout(() => {
-            resolve();
-        }, BLESendInterval);
-    });
+                resolve();
+            }, BLESendInterval);
+        });
     }
 
     /**
