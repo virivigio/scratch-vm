@@ -13,19 +13,19 @@ class Scratch3Lightplay {
 
         this.speed = 0;
         this.direction = '';
-        this.stepperSteps = 0;
+        this.steps = 0;
 
-        this.leds = {};
-        this.leds.led_1 = {};
-        this.leds.led_2 = {};
+        this.leds = [];
+        this.leds.push({});
+        this.leds.push({});
 
-        this.leds.led_1.R = 0;
-        this.leds.led_1.G = 0;
-        this.leds.led_1.B = 0;
+        this.leds[0].R = 0;
+        this.leds[0].G = 0;
+        this.leds[0].B = 0;
 
-        this.leds.led_2.R = 0;
-        this.leds.led_2.G = 0;
-        this.leds.led_2.B = 0;
+        this.leds[1].R = 0;
+        this.leds[1].G = 0;
+        this.leds[1].B = 0;
 
         // Create a new MicroBit peripheral instance
         this._peripheral = new MbitMore(this.runtime, 'lightplay');
@@ -169,27 +169,49 @@ class Scratch3Lightplay {
     // ENGINE
     //
 
-    startRotation (args) {
+    startRotation(args, util) {
+        log.info('startRotation');
+
         const speed = parseInt(args.SPEED, 10);
         if (isNaN(speed)) return;
         this.speed = speed;
+        const delay = this.speed; //TODO make formula and bound to 255
 
-        //manca la validazione
         this.direction = args.DIRECTION;
 
-        //manca l'invio del comando
+        let comando = 4 << 12;                                             //0100 xxxx xxxx xxxx
+        if ('clockwise' === this.direction) comando += 1 << 8;             //0100 0001 xxxx xxxx
+        else if ('counterclockwise' === this.direction) comando += 2 << 8; //0100 0010 xxxx xxxx
+        else this.direction='';                                            //0100 0000 xxxx xxxx
+        comando += delay > 255 ? 255 : delay;                              //0100 00?? deee elay
+
+        this._peripheral.setSharedData(0, comando, util);
+        log.info('Invio Start: '+comando);
     }
 
-    stopRotation (args) {
-        //manca l'invio del comando
+    stopRotation (args, util) {
+        log.info('stopRotation');
+
         this.speed = 0;
+        this.direction = 0;
+
+        let comando = 4 << 12;                                            //0100 0000 0000 0000
+        this._peripheral.setSharedData(0, comando, util);
+        log.info('Invio Stop');
     }
 
-    setNumberOfStepperSteps (args) {
-        //manca la validazione
-        this.stepperSteps = args.DIRECTION;
+    setNumberOfStepperSteps (args, util) {
+        log.info('setNumberOfStepperSteps');
 
-        //manca l'invio del comando
+        const steps = parseInt(args.STEPS, 10);
+        if (isNaN(steps)) return;
+        this.steps = steps; //TODO bounded to 255
+
+        let comando = 7 << 12;                                            //0111 xxxx xxxx xxxx
+        comando += steps;                                                 //0111 stee eeee eeps
+
+        this._peripheral.setSharedData(0, comando, util);
+        log.info('Invio Steps: '+comando);
     }
 
 
@@ -198,24 +220,70 @@ class Scratch3Lightplay {
     // LIGHT
     //
 
-    switchOff (args) {
-        let whichLed = args.WHICH;
+    //this is a function shared by all the light blocks
+    _sendColorRGB (led, R, G, B, util) {
+        log.info('_sendColorRGB');
+
+        if (led === 1) {
+            this.leds[0].R = 0; this.leds[0].B = 0; this.leds[0].G = 0;
+        } else
+        if (led === 2) {
+            this.leds[1].R = 0; this.leds[1].B = 0; this.leds[1].G = 0;
+        } else
+        if (led === 3) {
+            this.leds[0].R = 0; this.leds[0].B = 0; this.leds[0].G = 0;
+            this.leds[1].R = 0; this.leds[1].B = 0; this.leds[1].G = 0;
+        } else return;
+
+        let comando = led << 12;                                           //00?? xxxx xxxx xxxx
+        comando += R << 8;                                                 //00?? RRRR xxxx xxxx
+        comando += G << 4;                                                 //00?? RRRR GGGG xxxx
+        comando += B << 0;                                                 //00?? RRRR GGGG BBBB
+
+        this._peripheral.setSharedData(0, comando, util);
+        log.info('Invio Led ('+led+'): '+R+':'+G+':'+B);
     }
 
-    setColorRGB (args) {
-        let whichLed = args.WHICH;
+    switchOff (args, util) {
+        log.info('switchOff');
 
-        const R = parseInt(args.R, 10);
-        const G = parseInt(args.R, 10);
-        const B = parseInt(args.R, 10);
+        let whichLed = 0;
+
+        if ('led 1' === args.WHICH) whichLed = 1;
+        if ('led 2' === args.WHICH) whichLed = 2;
+        if ('all leds' === args.WHICH) whichLed = 3;
+        if (whichLed === 0) return;
+
+        this._sendColorRGB(whichLed, 0, 0, 0, util);
+    }
+
+    setColorRGB (args, util) {
+        log.info('setColorRGB');
+
+        let whichLed = 0;
+
+        if ('led 1' === args.WHICH) whichLed = 1;
+        if ('led 2' === args.WHICH) whichLed = 2;
+        if ('all leds' === args.WHICH) whichLed = 3;
+        if (whichLed === 0) return;
+
+        let R = parseInt(args.R, 10);
+        let G = parseInt(args.G, 10);
+        let B = parseInt(args.B, 10);
 
         if ( isNaN(R) || isNaN(G) || isNaN(B) ) return;
+
+        //bound to 0-15
+        if (R > 15) R=15; if (G > 15) G=15; if (B > 15) B=15;
+        if (R < 0) R=0; if (G < 0) G=0; if (B < 0) B=0;
+
+        this._sendColorRGB(whichLed, R, G, B, util);
     }
 
-    setColorToColor (args) {
+    setColorToColor (args, util) {
     }
 
-    changeColorParamBy (args) {
+    changeColorParamBy (args, util) {
     }
 
 }
