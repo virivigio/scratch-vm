@@ -1,6 +1,7 @@
 const ArgumentType = require('../../extension-support/argument-type');
 const BlockType = require('../../extension-support/block-type');
 const Cast = require('../../util/cast');
+const Color = require('../../util/color');
 const log = require('../../util/log');
 const MbitMore = require('./peripheral');
 
@@ -68,7 +69,7 @@ class Scratch3Lightplay {
                 {
                     opcode: 'setNumberOfStepperSteps',
                     blockType: BlockType.COMMAND,
-                    text: 'Tell the driver that the motor has [STEPS] steps',
+                    text: 'Set motor steps to [STEPS]',
                     arguments: {
                         STEPS: {
                             type: ArgumentType.NUMBER,
@@ -180,8 +181,8 @@ class Scratch3Lightplay {
         this.direction = args.DIRECTION;
 
         let comando = 4 << 12;                                             //0100 xxxx xxxx xxxx
-        if ('clockwise' === this.direction) comando += 1 << 8;             //0100 0001 xxxx xxxx
-        else if ('counterclockwise' === this.direction) comando += 2 << 8; //0100 0010 xxxx xxxx
+        if ('clockwise' === this.direction) comando += 1 << 8;             //0100 0001 xxxx xxxx 16640+delay
+        else if ('counterclockwise' === this.direction) comando += 2 << 8; //0100 0010 xxxx xxxx 16896+delay
         else this.direction='';                                            //0100 0000 xxxx xxxx
         comando += delay > 255 ? 255 : delay;                              //0100 00?? deee elay
 
@@ -273,6 +274,10 @@ class Scratch3Lightplay {
 
         if ( isNaN(R) || isNaN(G) || isNaN(B) ) return;
 
+        R = Math.floor(R/16);
+        G = Math.floor(G/16);
+        B = Math.floor(B/16);
+
         //bound to 0-15
         if (R > 15) R=15; if (G > 15) G=15; if (B > 15) B=15;
         if (R < 0) R=0; if (G < 0) G=0; if (B < 0) B=0;
@@ -281,6 +286,30 @@ class Scratch3Lightplay {
     }
 
     setColorToColor (args, util) {
+        log.info('setColorToColor');
+
+        let whichLed = 0;
+
+        if ('led 1' === args.WHICH) whichLed = 1;
+        if ('led 2' === args.WHICH) whichLed = 2;
+        if ('all leds' === args.WHICH) whichLed = 3;
+        if (whichLed === 0) return;
+
+        const rgb = Cast.toRgbColorObject(args.COLOR);
+        let R = rgb.r;
+        let G = rgb.g;
+        let B = rgb.b;
+        log.info('Scelto Colore: '+R+':'+G+':'+B);
+
+        R = Math.floor(R/16);
+        G = Math.floor(G/16);
+        B = Math.floor(B/16);
+
+        //bound to 0-15. shouldn't be needed but just in case
+        if (R > 15) R=15; if (G > 15) G=15; if (B > 15) B=15;
+        if (R < 0) R=0; if (G < 0) G=0; if (B < 0) B=0;
+
+        this._sendColorRGB(whichLed, R, G, B, util);
     }
 
     changeColorParamBy (args, util) {
