@@ -12,7 +12,7 @@ Sets a specific led to the visually chosen value.  Leds can be: led 1, led 2 or 
 ####Turn off leds
 Sets all led values to zero. Leds can be: led 1, led 2 or both
 ####Change led aspect
-TODO
+Changes Color or Brightness (no Saturation) of leds. To decide if we can modify both leds at the same time, it can generate multiple messages TODO
 ### Movement Blocks
 ####Set motor steps
 Tells the low-level motor library the number of steps the step motor has. This is dependend on the specific stepper engine.

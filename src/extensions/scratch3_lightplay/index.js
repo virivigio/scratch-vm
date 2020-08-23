@@ -155,7 +155,7 @@ class Scratch3Lightplay {
                     items: ['clockwise', 'counterclockwise']
                 },
                 colorParamMenu : {
-                    items: ['color', 'saturation forse', 'brightness']
+                    items: ['color', 'brightness']
                 },
                 ledMenu : {
                     items: ['all leds', 'led 1', 'led 2']
@@ -206,10 +206,13 @@ class Scratch3Lightplay {
 
         const steps = parseInt(args.STEPS, 10);
         if (isNaN(steps)) return;
-        this.steps = steps; //TODO bounded to 255
+        if (steps > 4095) { //we have 12 bits
+            log.error('Steps value of '+steps+' is too high, capping it to 4095');
+            this.steps=4095; }
+        else this.steps = steps;
 
         let comando = 7 << 12;                                            //0111 xxxx xxxx xxxx
-        comando += steps;                                                 //0111 stee eeee eeps
+        comando += this.steps;                                                 //0111 stee eeee eeps
 
         this._peripheral.setSharedData(0, comando, util);
         log.info('Invio Steps: '+comando);
@@ -313,6 +316,52 @@ class Scratch3Lightplay {
     }
 
     changeColorParamBy (args, util) {
+        log.info('changeColorParamBy');
+
+        let whichLed = 0;
+        let hsv;
+
+        if ('led 1' === args.WHICH) {
+            whichLed = 1;
+            hsv = Color.rgbToHsv({r: this.leds[0].R*16, g: this.leds[0].G*16, b: this.leds[0].B*16});
+        }
+        if ('led 2' === args.WHICH) {
+            whichLed = 2;
+            hsv = Color.rgbToHsv({r: this.leds[1].R*16, g: this.leds[1].G*16, b: this.leds[1].B*16});
+        }
+        if ('all leds' === args.WHICH) {
+            //TODO verify if we should change them independently
+            whichLed = 3;
+            hsv = Color.rgbToHsv({r: this.leds[0].R, g: this.leds[0].G*16, b: this.leds[0].B*16});
+        }
+        if (whichLed === 0) return;
+
+        let value = parseInt(args.VALUE, 10);
+        if ( isNaN(value) ) return;
+
+        let color = 100 * hsv.h / 360;
+        let saturation = 100 * hsv.s;
+        let brightness = 100 * hsv.v;
+        log.info('hsv: '+color+':'+saturation+':'+brightness);
+
+        if ('color' === args.COLOR_PARAM) {
+            color += value;
+        }
+        if ('brightness' === args.COLOR_PARAM) {
+            brightness += value;
+        }
+
+        let rgb = Color.hsvToRgb({h: color * 360 / 100, s: saturation, v: brightness});
+
+        let R = Math.floor(rgb.r/16);
+        let G = Math.floor(rgb.g/16);
+        let B = Math.floor(rgb.b/16);
+
+        //bound to 0-15. shouldn't be needed but just in case
+        if (R > 15) R=15; if (G > 15) G=15; if (B > 15) B=15;
+        if (R < 0) R=0; if (G < 0) G=0; if (B < 0) B=0;
+
+        this._sendColorRGB(whichLed, R, G, B, util);
     }
 
 }
