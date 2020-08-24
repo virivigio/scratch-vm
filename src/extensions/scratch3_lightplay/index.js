@@ -20,6 +20,7 @@ class Scratch3Lightplay {
         this.leds.push({});
         this.leds.push({});
 
+        //values are in the range 0-255 because it is the standard
         this.leds[0].R = 0;
         this.leds[0].G = 0;
         this.leds[0].B = 0;
@@ -176,7 +177,7 @@ class Scratch3Lightplay {
         const speed = parseInt(args.SPEED, 10);
         if (isNaN(speed)) return;
         this.speed = speed;
-        const delay = this.speed; //TODO make formula and bound to 255
+        const delay = this.speed; //TODO make formula and bound to 255, we have 8 bit
 
         this.direction = args.DIRECTION;
 
@@ -187,7 +188,7 @@ class Scratch3Lightplay {
         comando += delay > 255 ? 255 : delay;                              //0100 00?? deee elay
 
         this._peripheral.setSharedData(0, comando, util);
-        log.info('Invio Start: '+comando);
+        log.info('Sending Start Command: '+comando);
     }
 
     stopRotation (args, util) {
@@ -198,7 +199,7 @@ class Scratch3Lightplay {
 
         let comando = 4 << 12;                                            //0100 0000 0000 0000
         this._peripheral.setSharedData(0, comando, util);
-        log.info('Invio Stop');
+        log.info('Sending Stop Command');
     }
 
     setNumberOfStepperSteps (args, util) {
@@ -215,7 +216,7 @@ class Scratch3Lightplay {
         comando += this.steps;                                                 //0111 stee eeee eeps
 
         this._peripheral.setSharedData(0, comando, util);
-        log.info('Invio Steps: '+comando);
+        log.info('Sending Steps Command: '+comando);
     }
 
 
@@ -229,23 +230,23 @@ class Scratch3Lightplay {
         log.info('_sendColorRGB');
 
         if (led === 1) {
-            this.leds[0].R = 0; this.leds[0].B = 0; this.leds[0].G = 0;
+            this.leds[0].R = R; this.leds[0].G = G; this.leds[0].B = B;
         } else
         if (led === 2) {
-            this.leds[1].R = 0; this.leds[1].B = 0; this.leds[1].G = 0;
+            this.leds[1].R = R; this.leds[1].G = G; this.leds[1].B = B;
         } else
         if (led === 3) {
-            this.leds[0].R = 0; this.leds[0].B = 0; this.leds[0].G = 0;
-            this.leds[1].R = 0; this.leds[1].B = 0; this.leds[1].G = 0;
+            this.leds[0].R = R; this.leds[0].G = G; this.leds[0].B = B;
+            this.leds[1].R = R; this.leds[1].G = G; this.leds[1].B = B;
         } else return;
 
         let comando = led << 12;                                           //00?? xxxx xxxx xxxx
-        comando += R << 8;                                                 //00?? RRRR xxxx xxxx
-        comando += G << 4;                                                 //00?? RRRR GGGG xxxx
-        comando += B << 0;                                                 //00?? RRRR GGGG BBBB
+        comando += Math.floor(R/16) << 8;                               //00?? RRRR xxxx xxxx
+        comando += Math.floor(G/16) << 4;                               //00?? RRRR GGGG xxxx
+        comando += Math.floor(B/16) << 0;                               //00?? RRRR GGGG BBBB
 
         this._peripheral.setSharedData(0, comando, util);
-        log.info('Invio Led ('+led+'): '+R+':'+G+':'+B);
+        log.info('Sending Led ('+led+'): '+R+':'+G+':'+B);
     }
 
     switchOff (args, util) {
@@ -277,12 +278,8 @@ class Scratch3Lightplay {
 
         if ( isNaN(R) || isNaN(G) || isNaN(B) ) return;
 
-        R = Math.floor(R/16);
-        G = Math.floor(G/16);
-        B = Math.floor(B/16);
-
-        //bound to 0-15
-        if (R > 15) R=15; if (G > 15) G=15; if (B > 15) B=15;
+        //bound to 0-255
+        if (R > 255) R=255; if (G > 255) G=255; if (B > 255) B=255;
         if (R < 0) R=0; if (G < 0) G=0; if (B < 0) B=0;
 
         this._sendColorRGB(whichLed, R, G, B, util);
@@ -302,14 +299,10 @@ class Scratch3Lightplay {
         let R = rgb.r;
         let G = rgb.g;
         let B = rgb.b;
-        log.info('Scelto Colore: '+R+':'+G+':'+B);
 
-        R = Math.floor(R/16);
-        G = Math.floor(G/16);
-        B = Math.floor(B/16);
 
-        //bound to 0-15. shouldn't be needed but just in case
-        if (R > 15) R=15; if (G > 15) G=15; if (B > 15) B=15;
+        //bound to 0-255. shouldn't be needed but just in case
+        if (R > 255) R=255; if (G > 255) G=255; if (B > 255) B=255;
         if (R < 0) R=0; if (G < 0) G=0; if (B < 0) B=0;
 
         this._sendColorRGB(whichLed, R, G, B, util);
@@ -317,32 +310,46 @@ class Scratch3Lightplay {
 
     changeColorParamBy (args, util) {
         log.info('changeColorParamBy');
+        // https://en.wikipedia.org/wiki/HSL_and_HSV
+        // https://www.rapidtables.com/convert/color/rgb-to-hsv.html
 
         let whichLed = 0;
         let hsv;
+        let R;
+        let G;
+        let B;
 
         if ('led 1' === args.WHICH) {
             whichLed = 1;
-            hsv = Color.rgbToHsv({r: this.leds[0].R*16, g: this.leds[0].G*16, b: this.leds[0].B*16});
+            R = this.leds[0].R;
+            G = this.leds[0].G;
+            B = this.leds[0].B;
         }
         if ('led 2' === args.WHICH) {
             whichLed = 2;
-            hsv = Color.rgbToHsv({r: this.leds[1].R*16, g: this.leds[1].G*16, b: this.leds[1].B*16});
+            R = this.leds[1].R;
+            G = this.leds[1].G;
+            B = this.leds[1].B;
         }
-        if ('all leds' === args.WHICH) {
-            //TODO verify if we should change them independently
+        if ('all leds' === args.WHICH) { //TODO verify if we should change them independently
             whichLed = 3;
-            hsv = Color.rgbToHsv({r: this.leds[0].R, g: this.leds[0].G*16, b: this.leds[0].B*16});
+            R = this.leds[0].R;
+            G = this.leds[0].G;
+            B = this.leds[0].B;
         }
         if (whichLed === 0) return;
 
         let value = parseInt(args.VALUE, 10);
         if ( isNaN(value) ) return;
 
-        let color = 100 * hsv.h / 360;
+        hsv = Color.rgbToHsv({r: R, g: G, b: B});
+        let color = hsv.h;
         let saturation = 100 * hsv.s;
         let brightness = 100 * hsv.v;
-        log.info('hsv: '+color+':'+saturation+':'+brightness);
+
+        log.info('initial rgb: '+R+':'+G+':'+B);
+        log.info('initial hsv: '+hsv.h+':'+hsv.s+':'+hsv.v);
+        log.info('initial csb: '+color+':'+saturation+':'+brightness);
 
         if ('color' === args.COLOR_PARAM) {
             color += value;
@@ -351,14 +358,16 @@ class Scratch3Lightplay {
             brightness += value;
         }
 
-        let rgb = Color.hsvToRgb({h: color * 360 / 100, s: saturation, v: brightness});
+        log.info('final hsv: '+color+':'+saturation+':'+brightness);
+        let rgb = Color.hsvToRgb({h: color, s: saturation/100, v: brightness/100 });
 
-        let R = Math.floor(rgb.r/16);
-        let G = Math.floor(rgb.g/16);
-        let B = Math.floor(rgb.b/16);
+        R = rgb.r;
+        G = rgb.g;
+        B = rgb.b;
+        log.info('final rgb: '+R+':'+G+':'+B);
 
-        //bound to 0-15. shouldn't be needed but just in case
-        if (R > 15) R=15; if (G > 15) G=15; if (B > 15) B=15;
+        //bound to 0-255. shouldn't be needed but just in case
+        if (R > 255) R=255; if (G > 255) G=255; if (B > 255) B=255;
         if (R < 0) R=0; if (G < 0) G=0; if (B < 0) B=0;
 
         this._sendColorRGB(whichLed, R, G, B, util);
