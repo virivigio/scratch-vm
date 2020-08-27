@@ -187,7 +187,7 @@ class Scratch3Lightplay {
         else this.direction='';                                            //0100 0000 xxxx xxxx
         comando += delay > 255 ? 255 : delay;                              //0100 00?? deee elay
 
-        this._peripheral.setSharedData(0, comando, util);
+        this._peripheral.setSharedData(1, comando, util);
         log.info('Sending Start Command: '+comando);
     }
 
@@ -198,7 +198,7 @@ class Scratch3Lightplay {
         this.direction = 0;
 
         let comando = 4 << 12;                                            //0100 0000 0000 0000
-        this._peripheral.setSharedData(0, comando, util);
+        this._peripheral.setSharedData(1, comando, util);
         log.info('Sending Stop Command');
     }
 
