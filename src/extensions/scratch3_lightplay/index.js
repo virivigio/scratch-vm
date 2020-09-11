@@ -4,6 +4,7 @@ const Cast = require('../../util/cast');
 const Color = require('../../util/color');
 const log = require('../../util/log');
 const MbitMore = require('./peripheral');
+const formatMessage = require('format-message');
 
 const blockIconURI = 'data:image/png;base64,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'
 
@@ -48,7 +49,8 @@ class Scratch3Lightplay {
                 {
                     opcode: 'startRotation',
                     blockType: BlockType.COMMAND,
-                    text: 'Start rotating [DIRECTION] with speed [SPEED]',
+                    text: 'Ruota in senso [DIRECTION] con velocità [SPEED]',
+//                    text: 'Start rotating [DIRECTION] with speed [SPEED]',
                     arguments: {
                         DIRECTION: {
                             type: ArgumentType.STRING,
@@ -63,14 +65,16 @@ class Scratch3Lightplay {
                 {
                     opcode: 'stopRotation',
                     blockType: BlockType.COMMAND,
-                    text: 'Stop rotation',
+                    text: 'Ferma la rotazione',
+//                    text: 'Stop rotation',
                     arguments: {
                     }
                 },
                 {
                     opcode: 'setNumberOfStepperSteps',
                     blockType: BlockType.COMMAND,
-                    text: 'Set motor steps to [STEPS]',
+                    text: 'Imposta il motore a [STEPS] passi per giro',
+//                    text: 'Set motor steps to [STEPS]',
                     arguments: {
                         STEPS: {
                             type: ArgumentType.NUMBER,
@@ -84,7 +88,8 @@ class Scratch3Lightplay {
                 {
                     opcode: 'switchOff',
                     blockType: BlockType.COMMAND,
-                    text: 'Turn off [WHICH]',
+//                    text: 'Turn off [WHICH]',
+                    text: 'Spegni led [WHICH]',
                     arguments: {
                         WHICH: {
                             type: ArgumentType.NUMBER,
@@ -95,7 +100,8 @@ class Scratch3Lightplay {
                 {
                     opcode: 'setColorRGB',
                     blockType: BlockType.COMMAND,
-                    text: 'Set led [WHICH] to color Red [R] Green [G] Blue [B]',
+                    text: 'Imposta led [WHICH] di colore  Rosso [R] Verde [G] Blu [B]',
+//                    text: 'Set led [WHICH] to color Red [R] Green [G] Blue [B]',
                     arguments: {
                         WHICH: {
                             type: ArgumentType.STRING,
@@ -119,7 +125,8 @@ class Scratch3Lightplay {
                 {
                     opcode: 'setColorToColor',
                     blockType: BlockType.COMMAND,
-                    text: 'Set led [WHICH] color to [COLOR]',
+                    text: 'Imposta led [WHICH] di colore [COLOR]',
+//                    text: 'Set led [WHICH] color to [COLOR]',
                     arguments: {
                         WHICH: {
                             type: ArgumentType.STRING,
@@ -133,7 +140,8 @@ class Scratch3Lightplay {
                 {
                     opcode: 'changeColorParamBy',
                     blockType: BlockType.COMMAND,
-                    text: 'Change led [WHICH] [COLOR_PARAM] by [VALUE]',
+                    text: 'Cambia [COLOR_PARAM] di led [WHICH] di [VALUE]',
+//                    text: 'Change led [WHICH] [COLOR_PARAM] by [VALUE]',
                     arguments: {
                         WHICH: {
                             type: ArgumentType.STRING,
@@ -153,13 +161,16 @@ class Scratch3Lightplay {
             ],
             menus: {
                 directionMenu: {
-                    items: ['clockwise', 'counterclockwise']
+                    items: ['orario', 'antiorario']
+//                    items: ['clockwise', 'counterclockwise']
                 },
                 colorParamMenu : {
-                    items: ['color', 'brightness']
+                    items: ['colore', 'luminosità']
+//                  items: ['color', 'brightness']
                 },
                 ledMenu : {
-                    items: ['all leds', 'led 1', 'led 2']
+                    items: ['tutti', 'led 1', 'led 2']
+//                    items: ['all leds', 'led 1', 'led 2']
                 }
             }
         };
@@ -177,15 +188,20 @@ class Scratch3Lightplay {
         const speed = parseInt(args.SPEED, 10);
         if (isNaN(speed)) return;
         this.speed = speed;
-        const delay = this.speed; //TODO make formula and bound to 255, we have 8 bit
-
         this.direction = args.DIRECTION;
+        let comando = 4 << 12;                                               //0100 xxxx xxxx xxxx
 
-        let comando = 4 << 12;                                             //0100 xxxx xxxx xxxx
-        if ('clockwise' === this.direction) comando += 1 << 8;             //0100 0001 xxxx xxxx 16640+delay
-        else if ('counterclockwise' === this.direction) comando += 2 << 8; //0100 0010 xxxx xxxx 16896+delay
-        else this.direction='';                                            //0100 0000 xxxx xxxx
-        comando += delay > 255 ? 255 : delay;                              //0100 00?? deee elay
+        //Zero speed is equivalent to stop
+        if (this.speed > 0) {
+            this.speed = this.speed > 100 ? 100 : this.speed;
+            const delay = (1 - this.speed) * 2.57 + 255; //TODO make formula and bound to 255, we have 8 bit
+            if ('orario' === this.direction) comando += 1 << 8;             //0100 0001 xxxx xxxx 16640+delay
+            else if ('antiorario' === this.direction) comando += 2 << 8;    //0100 0010 xxxx xxxx 16896+delay
+  //        if ('clockwise' === this.direction) comando += 1 << 8;             //0100 0001 xxxx xxxx 16640+delay
+  //        else if ('counterclockwise' === this.direction) comando += 2 << 8; //0100 0010 xxxx xxxx 16896+delay
+            else this.direction='';                                            //0100 0000 xxxx xxxx
+            comando += delay > 255 ? 255 : delay;                              //0100 00?? deee elay
+        }
 
         this._peripheral.setSharedData(1, comando, util);
         log.info('Sending Start Command: '+comando);
@@ -256,7 +272,8 @@ class Scratch3Lightplay {
 
         if ('led 1' === args.WHICH) whichLed = 1;
         if ('led 2' === args.WHICH) whichLed = 2;
-        if ('all leds' === args.WHICH) whichLed = 3;
+        if ('tutti' === args.WHICH) whichLed = 3;
+//        if ('all leds' === args.WHICH) whichLed = 3;
         if (whichLed === 0) return;
 
         this._sendColorRGB(whichLed, 0, 0, 0, util);
@@ -269,7 +286,8 @@ class Scratch3Lightplay {
 
         if ('led 1' === args.WHICH) whichLed = 1;
         if ('led 2' === args.WHICH) whichLed = 2;
-        if ('all leds' === args.WHICH) whichLed = 3;
+        if ('tutti' === args.WHICH) whichLed = 3;
+//        if ('all leds' === args.WHICH) whichLed = 3;
         if (whichLed === 0) return;
 
         let R = parseInt(args.R, 10);
@@ -292,7 +310,8 @@ class Scratch3Lightplay {
 
         if ('led 1' === args.WHICH) whichLed = 1;
         if ('led 2' === args.WHICH) whichLed = 2;
-        if ('all leds' === args.WHICH) whichLed = 3;
+        if ('tutti' === args.WHICH) whichLed = 3;
+//        if ('all leds' === args.WHICH) whichLed = 3;
         if (whichLed === 0) return;
 
         const rgb = Cast.toRgbColorObject(args.COLOR);
@@ -331,7 +350,8 @@ class Scratch3Lightplay {
             G = this.leds[1].G;
             B = this.leds[1].B;
         }
-        if ('all leds' === args.WHICH) { //TODO verify if we should change them independently
+        if ('tutti' === args.WHICH) { //TODO verify if we should change them independently
+//        if ('all leds' === args.WHICH) { //TODO verify if we should change them independently
             whichLed = 3;
             R = this.leds[0].R;
             G = this.leds[0].G;
@@ -351,10 +371,12 @@ class Scratch3Lightplay {
         log.info('initial hsv: '+hsv.h+':'+hsv.s+':'+hsv.v);
         log.info('initial csb: '+color+':'+saturation+':'+brightness);
 
-        if ('color' === args.COLOR_PARAM) {
+        if ('colore' === args.COLOR_PARAM) {
+//        if ('color' === args.COLOR_PARAM) {
             color += value;
         }
-        if ('brightness' === args.COLOR_PARAM) {
+        if ('luminosità' === args.COLOR_PARAM) {
+//        if ('brightness' === args.COLOR_PARAM) {
             brightness += value;
         }
 
