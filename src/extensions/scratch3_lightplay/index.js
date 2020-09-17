@@ -194,7 +194,7 @@ class Scratch3Lightplay {
         //Zero speed is equivalent to stop
         if (this.speed > 0) {
             this.speed = this.speed > 100 ? 100 : this.speed;
-            const delay = (1 - this.speed) * 2.57 + 255; //TODO make formula and bound to 255, we have 8 bit
+            const delay = Math.floor((1 - this.speed) * 2.57 + 255); //TODO make formula and bound to 255, we have 8 bit
             if ('orario' === this.direction) comando += 1 << 8;             //0100 0001 xxxx xxxx 16640+delay
             else if ('antiorario' === this.direction) comando += 2 << 8;    //0100 0010 xxxx xxxx 16896+delay
   //        if ('clockwise' === this.direction) comando += 1 << 8;             //0100 0001 xxxx xxxx 16640+delay
