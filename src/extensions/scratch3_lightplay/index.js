@@ -37,6 +37,7 @@ class Scratch3Lightplay {
 
 
     getInfo () {
+        this.setupTranslations();
         return {
             id: 'lightplay',
             name: 'Lightplay',
@@ -44,52 +45,15 @@ class Scratch3Lightplay {
             showStatusButton: true,
             blocks: [
 
-                //ENGINE
-
-                {
-                    opcode: 'startRotation',
-                    blockType: BlockType.COMMAND,
-                    text: 'Ruota in senso [DIRECTION] con velocità [SPEED]',
-//                    text: 'Start rotating [DIRECTION] with speed [SPEED]',
-                    arguments: {
-                        DIRECTION: {
-                            type: ArgumentType.STRING,
-                            menu: 'directionMenu'
-                        },
-                        SPEED: {
-                            type: ArgumentType.NUMBER,
-                            defaultValue: 40
-                        }
-                    }
-                },
-                {
-                    opcode: 'stopRotation',
-                    blockType: BlockType.COMMAND,
-                    text: 'Ferma la rotazione',
-//                    text: 'Stop rotation',
-                    arguments: {
-                    }
-                },
-                {
-                    opcode: 'setNumberOfStepperSteps',
-                    blockType: BlockType.COMMAND,
-                    text: 'Imposta il motore a [STEPS] passi per giro',
-//                    text: 'Set motor steps to [STEPS]',
-                    arguments: {
-                        STEPS: {
-                            type: ArgumentType.NUMBER,
-                            defaultValue: 200
-                        },
-                    }
-                },
-
                 //LIGHT
 
                 {
                     opcode: 'switchOff',
                     blockType: BlockType.COMMAND,
-//                    text: 'Turn off [WHICH]',
-                    text: 'Spegni led [WHICH]',
+                    text: formatMessage({
+                        id: 'lightPlay.switchOff',
+                        default: 'Turn off [WHICH]'
+                    }),
                     arguments: {
                         WHICH: {
                             type: ArgumentType.NUMBER,
@@ -100,8 +64,10 @@ class Scratch3Lightplay {
                 {
                     opcode: 'setColorRGB',
                     blockType: BlockType.COMMAND,
-                    text: 'Imposta led [WHICH] di colore  Rosso [R] Verde [G] Blu [B]',
-//                    text: 'Set led [WHICH] to color Red [R] Green [G] Blue [B]',
+                    text: formatMessage({
+                        id: 'lightPlay.setColorRGB',
+                        default: 'Set led [WHICH] to color Red [R] Green [G] Blue [B]'
+                    }),
                     arguments: {
                         WHICH: {
                             type: ArgumentType.STRING,
@@ -125,8 +91,10 @@ class Scratch3Lightplay {
                 {
                     opcode: 'setColorToColor',
                     blockType: BlockType.COMMAND,
-                    text: 'Imposta led [WHICH] di colore [COLOR]',
-//                    text: 'Set led [WHICH] color to [COLOR]',
+                    text: formatMessage({
+                        id: 'lightPlay.setColorToColor',
+                        default: 'Set led [WHICH] color to [COLOR]'
+                    }),
                     arguments: {
                         WHICH: {
                             type: ArgumentType.STRING,
@@ -140,8 +108,10 @@ class Scratch3Lightplay {
                 {
                     opcode: 'changeColorParamBy',
                     blockType: BlockType.COMMAND,
-                    text: 'Cambia [COLOR_PARAM] di led [WHICH] di [VALUE]',
-//                    text: 'Change led [WHICH] [COLOR_PARAM] by [VALUE]',
+                    text: formatMessage({
+                        id: 'lightPlay.changeColorParamBy',
+                        default: 'Change led [WHICH] [COLOR_PARAM] by [VALUE]'
+                    }),
                     arguments: {
                         WHICH: {
                             type: ArgumentType.STRING,
@@ -156,21 +126,115 @@ class Scratch3Lightplay {
                             defaultValue: 10
                         }
                     }
+                },
+
+                //ENGINE
+
+                {
+                    opcode: 'startRotation',
+                    blockType: BlockType.COMMAND,
+                    text: formatMessage({
+                        id: 'lightPlay.startRotation',
+                        default: 'Start rotating [DIRECTION] with speed [SPEED]'
+                    }),
+                    arguments: {
+                        DIRECTION: {
+                            type: ArgumentType.STRING,
+                            menu: 'directionMenu'
+                        },
+                        SPEED: {
+                            type: ArgumentType.NUMBER,
+                            defaultValue: 40
+                        }
+                    }
+                },
+                {
+                    opcode: 'stopRotation',
+                    blockType: BlockType.COMMAND,
+                    text: formatMessage({
+                        id: 'lightPlay.stopRotation',
+                        default: 'Stop rotation'
+                    }),
+                    arguments: {
+                    }
+                },
+                {
+                    opcode: 'setNumberOfStepperSteps',
+                    blockType: BlockType.COMMAND,
+                    text: formatMessage({
+                        id: 'lightPlay.setNumberOfStepperSteps',
+                        default: 'Configure stepper with [STEPS] steps'
+                    }),
+                    arguments: {
+                        STEPS: {
+                            type: ArgumentType.NUMBER,
+                            defaultValue: 2048
+                        },
+                    }
                 }
 
             ],
             menus: {
                 directionMenu: {
-                    items: ['orario', 'antiorario']
-//                    items: ['clockwise', 'counterclockwise']
+                    items: [
+                        {
+                            text: formatMessage({
+                                id: 'lightPlay.directionMenu.clockwise',
+                                default: 'clockwise',
+                            }),
+                            value: 'clockwise'
+                        },
+                        {
+                            text: formatMessage({
+                                id: 'lightPlay.directionMenu.counterclockwise',
+                                default: 'counterclockwise',
+                            }),
+                            value: 'counterclockwise'
+                        }
+                    ]
                 },
                 colorParamMenu : {
-                    items: ['colore', 'luminosità']
-//                  items: ['color', 'brightness']
+                    items: [
+                        {
+                            text: formatMessage({
+                                id: 'lightPlay.colorParamMenu.color',
+                                default: 'color',
+                            }),
+                            value: 'color'
+                        },
+                        {
+                            text: formatMessage({
+                                id: 'lightPlay.colorParamMenu.brightness',
+                                default: 'brightness',
+                            }),
+                            value: 'brightness'
+                        }
+                    ]
                 },
                 ledMenu : {
-                    items: ['tutti', 'led 1', 'led 2']
-//                    items: ['all leds', 'led 1', 'led 2']
+                    items: [
+                        {
+                            text: formatMessage({
+                                id: 'lightPlay.ledMenu.all',
+                                default: 'all',
+                            }),
+                            value: 'all'
+                        },
+                        {
+                            text: formatMessage({
+                                id: 'lightPlay.ledMenu.1',
+                                default: '1',
+                            }),
+                            value: '1'
+                        },
+                        {
+                            text: formatMessage({
+                                id: 'lightPlay.ledMenu.2',
+                                default: '2',
+                            }),
+                            value: '2'
+                        }
+                    ]
                 }
             }
         };
@@ -195,10 +259,8 @@ class Scratch3Lightplay {
         if (this.speed > 0) {
             this.speed = this.speed > 100 ? 100 : this.speed;
             const delay = Math.floor((1 - this.speed) * 2.57 + 255); //TODO make formula and bound to 255, we have 8 bit
-            if ('orario' === this.direction) comando += 1 << 8;             //0100 0001 xxxx xxxx 16640+delay
-            else if ('antiorario' === this.direction) comando += 2 << 8;    //0100 0010 xxxx xxxx 16896+delay
-  //        if ('clockwise' === this.direction) comando += 1 << 8;             //0100 0001 xxxx xxxx 16640+delay
-  //        else if ('counterclockwise' === this.direction) comando += 2 << 8; //0100 0010 xxxx xxxx 16896+delay
+            if ('clockwise' === this.direction) comando += 1 << 8;             //0100 0001 xxxx xxxx 16640+delay
+            else if ('counterclockwise' === this.direction) comando += 2 << 8; //0100 0010 xxxx xxxx 16896+delay
             else this.direction='';                                            //0100 0000 xxxx xxxx
             comando += delay > 255 ? 255 : delay;                              //0100 00?? deee elay
         }
@@ -270,10 +332,9 @@ class Scratch3Lightplay {
 
         let whichLed = 0;
 
-        if ('led 1' === args.WHICH) whichLed = 1;
-        if ('led 2' === args.WHICH) whichLed = 2;
-        if ('tutti' === args.WHICH) whichLed = 3;
-//        if ('all leds' === args.WHICH) whichLed = 3;
+        if ('1' === args.WHICH) whichLed = 1;
+        if ('2' === args.WHICH) whichLed = 2;
+        if ('all' === args.WHICH) whichLed = 3;
         if (whichLed === 0) return;
 
         this._sendColorRGB(whichLed, 0, 0, 0, util);
@@ -284,10 +345,9 @@ class Scratch3Lightplay {
 
         let whichLed = 0;
 
-        if ('led 1' === args.WHICH) whichLed = 1;
-        if ('led 2' === args.WHICH) whichLed = 2;
-        if ('tutti' === args.WHICH) whichLed = 3;
-//        if ('all leds' === args.WHICH) whichLed = 3;
+        if ('1' === args.WHICH) whichLed = 1;
+        if ('2' === args.WHICH) whichLed = 2;
+        if ('all' === args.WHICH) whichLed = 3;
         if (whichLed === 0) return;
 
         let R = parseInt(args.R, 10);
@@ -308,10 +368,9 @@ class Scratch3Lightplay {
 
         let whichLed = 0;
 
-        if ('led 1' === args.WHICH) whichLed = 1;
-        if ('led 2' === args.WHICH) whichLed = 2;
-        if ('tutti' === args.WHICH) whichLed = 3;
-//        if ('all leds' === args.WHICH) whichLed = 3;
+        if ('1' === args.WHICH) whichLed = 1;
+        if ('2' === args.WHICH) whichLed = 2;
+        if ('all' === args.WHICH) whichLed = 3;
         if (whichLed === 0) return;
 
         const rgb = Cast.toRgbColorObject(args.COLOR);
@@ -338,20 +397,19 @@ class Scratch3Lightplay {
         let G;
         let B;
 
-        if ('led 1' === args.WHICH) {
+        if ('1' === args.WHICH) {
             whichLed = 1;
             R = this.leds[0].R;
             G = this.leds[0].G;
             B = this.leds[0].B;
         }
-        if ('led 2' === args.WHICH) {
+        if ('2' === args.WHICH) {
             whichLed = 2;
             R = this.leds[1].R;
             G = this.leds[1].G;
             B = this.leds[1].B;
         }
-        if ('tutti' === args.WHICH) { //TODO verify if we should change them independently
-//        if ('all leds' === args.WHICH) { //TODO verify if we should change them independently
+        if ('all' === args.WHICH) { //TODO verify if we should change them independently
             whichLed = 3;
             R = this.leds[0].R;
             G = this.leds[0].G;
@@ -371,12 +429,10 @@ class Scratch3Lightplay {
         log.info('initial hsv: '+hsv.h+':'+hsv.s+':'+hsv.v);
         log.info('initial csb: '+color+':'+saturation+':'+brightness);
 
-        if ('colore' === args.COLOR_PARAM) {
-//        if ('color' === args.COLOR_PARAM) {
+        if ('color' === args.COLOR_PARAM) {
             color += value;
         }
-        if ('luminosità' === args.COLOR_PARAM) {
-//        if ('brightness' === args.COLOR_PARAM) {
+        if ('brightness' === args.COLOR_PARAM) {
             brightness += value;
         }
 
@@ -395,6 +451,33 @@ class Scratch3Lightplay {
         this._sendColorRGB(whichLed, R, G, B, util);
     }
 
+    setupTranslations () {
+        const localeSetup = formatMessage.setup();
+        const extTranslations = {
+            'it': {
+                'lightPlay.startRotation': 'Ruota in senso [DIRECTION] con velocità [SPEED]',
+                'lightPlay.stopRotation': 'Ferma la rotazione',
+                'lightPlay.setNumberOfStepperSteps': 'Configura stepper con [STEPS] passi',
+                'lightPlay.switchOff': 'Spegni led [WHICH]',
+                'lightPlay.setColorRGB': 'Imposta led [WHICH] con il colore Rosso [R] Verde [G] Blu [B]',
+                'lightPlay.setColorToColor': 'Imposta led [WHICH] con il colore [COLOR]',
+                'lightPlay.changeColorParamBy': 'Cambia [COLOR_PARAM] al led [WHICH] di [VALUE]',
+                'lightPlay.directionMenu.clockwise': 'orario',
+                'lightPlay.directionMenu.counterclockwise': 'antiorario',
+                'lightPlay.colorParamMenu.color': 'colore',
+                'lightPlay.colorParamMenu.brightness': 'luminosità',
+                'lightPlay.ledMenu.all': 'tutti',
+                'lightPlay.ledMenu.1': '1',
+                'lightPlay.ledMenu.2': '2'
+            }
+        };
+        for (const locale in extTranslations) {
+            if (!localeSetup.translations[locale]) {
+                localeSetup.translations[locale] = {};
+            }
+            Object.assign(localeSetup.translations[locale], extTranslations[locale]);
+        }
+    }
 }
 
 module.exports = Scratch3Lightplay;
